@@ -91,14 +91,12 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
                     //为RecyclerView对象mRecyclerView设置adapter
                     mRecyclerView.setAdapter(adapter);
                     if (!firstInit) {
-                        int n = 10 * (currentPage - 1) - 4;
+                        int n = 10 * (currentPage - 2) - 4;
                         layoutManager.scrollToPositionWithOffset(n, 0);
                         layoutManager.setStackFromEnd(true);
                     }
                     firstInit = false;
-                    currentPage = currentPage + 1;
                     //System.out.println(firstInit);
-                    //System.out.println(currentPage);
                     adapter.setOnitemClickLintener(new MyAdapter.OnitemClick() {
                         @Override
                         public void onItemClick(int position) {
@@ -165,11 +163,11 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
         inflater.inflate(R.menu.menu_bottom_sheet, menu);
     }
 
-    //计时线程（防止在一定时间段内重复点击按钮）  
+    //计时线程
     private class TimeThread extends Thread {
         public void run() {
             try {
-                Thread.sleep(1000);
+                Thread.sleep(2000);
                 flag = true;
             } catch (Exception e) {
                 e.printStackTrace();
@@ -191,6 +189,7 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
                     //初始化变量
                     title = "";
                     textStr = "";
+                    currentPage = currentPage + 1;
                     //获取Document对象
                     Document doc = Jsoup.connect(siteUrl)
                             .userAgent("app/WtrwxFluid")
