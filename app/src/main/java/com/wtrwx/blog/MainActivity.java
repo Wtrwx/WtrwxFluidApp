@@ -247,7 +247,6 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
                 Toast.makeText(MainActivity.this, "再按一次退出程序", Toast.LENGTH_SHORT).show();
                 firstTime = System.currentTimeMillis();
             } else {
-                System.exit(0);
                 finish();
             }
             return true;
