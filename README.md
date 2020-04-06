@@ -4,7 +4,7 @@ Hexo-theme-fluid-AndroidApp
 
 ##### 使用说明：  
 
-1.请务必确保您的hexo主题为Fluid，不是请自行适配jsoup脚本。  
+1.请务必确保您的hexo主题为Fluid，不是请自行适配jsoup爬虫。  
 
 2.在全局范围内修改 https://wtrwx.top 为您的域名，注意不可多/少/，需保持与原格式一致。  
 
