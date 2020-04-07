@@ -41,29 +41,26 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
     public static boolean firstInit = true;
     public static int currentPage = 1;
     public static int longClickPosition;
-    public String Url;
+    public static String Url;
     public static String[] Urls;
     public static String[] titles;
-    private boolean flag = true;
-
-    private synchronized void setFlag() {
-        flag = false;
-    }
+    public initThread thread = new initThread();
 
     @SuppressLint({"WrongConstant", "HandlerLeak"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
         //初始化
-        initView();
+        thread.start();
         //接收数据
         handler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
                 if (msg.what == 1) {
                     //获取RecyclerView
-                    mRecyclerView = (RecyclerView) findViewById(R.id.card_list);
+                    mRecyclerView = findViewById(R.id.card_list);
                     mRecyclerView.setHasFixedSize(true);
                     //创建布局管理器
                     layoutManager = new LinearLayoutManager(MainActivity.this);
@@ -80,7 +77,8 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
                                     && visibleItemCount > 0) {
                                 //加载更多
                                 Toast.makeText(MainActivity.this, "加载更多", Toast.LENGTH_SHORT).show();
-                                initView();
+                                initThread thread=new initThread();
+                                thread.start();
                             }
                         }
                     });
@@ -100,24 +98,20 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
                     adapter.setOnitemClickLintener(new MyAdapter.OnitemClick() {
                         @Override
                         public void onItemClick(int position) {
-                            if (flag) {
-                                setFlag();
-                                siteUrl = "https://wtrwx.top";
-                                String uri = siteUrl + Urls[position];
-                                Intent intent = new Intent();
-                                intent.setClass(MainActivity.this, PostActivity.class);
-                                // 把需要传递的数据附加到intent中
-                                intent.putExtra("Uri", uri);
-                                startActivity(intent);
-                            }
-                            new TimeThread().start();
+                            siteUrl = "https://wtrwx.top";
+                            String uri = siteUrl + Urls[position];
+                            Intent intent = new Intent();
+                            intent.setClass(MainActivity.this, PostActivity.class);
+                            // 把需要传递的数据附加到intent中
+                            intent.putExtra("Uri", uri);
+                            startActivity(intent);
                         }
                     });
                     adapter.setOnLongClickListener(new MyAdapter.OnLongClick() {
                         @Override
                         public void onLongClick(int position) {
                             longClickPosition = position;
-                            new BottomSheetMenu.Builder(MainActivity.this,MainActivity.this
+                            new BottomSheetMenu.Builder(MainActivity.this, MainActivity.this
                             ).show();
                         }
                     });
@@ -130,9 +124,10 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
     public void onBottomSheetMenuItemSelected(MenuItem item) {
         final String uri1 = "";
         final int itemId = item.getItemId();
+        final String siteUrl = "https://wtrwx.top";
         switch (itemId) {
+
             case R.id.action_share:
-                siteUrl = "https://wtrwx.top";
                 String shareText = titles[longClickPosition + 1] + "\n" + siteUrl + Urls[longClickPosition];
                 //System.out.println(shareText);
                 Intent textIntent = new Intent(Intent.ACTION_SEND);
@@ -141,13 +136,11 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
                 startActivity(Intent.createChooser(textIntent, "分享"));
                 break;
             case R.id.action_copyLink:
-                siteUrl = "https://wtrwx.top";
                 String link = siteUrl + Urls[longClickPosition];
-                copyToClipboard(MainActivity.this,link);
+                copyToClipboard(MainActivity.this, link);
                 Toast.makeText(MainActivity.this, "已将链接复制到剪贴板", Toast.LENGTH_SHORT).show();
                 break;
             case R.id.action_openOut:
-                siteUrl = "https://wtrwx.top";
                 String openUrl = siteUrl + Urls[longClickPosition];
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri1));
                 intent.setAction("android.intent.action.VIEW");
@@ -157,101 +150,69 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
         }
     }
 
-
     @Override
     public void onCreateBottomSheetMenu(MenuInflater inflater, Menu menu) {
         inflater.inflate(R.menu.menu_bottom_sheet, menu);
     }
 
-    //计时线程
-    private class TimeThread extends Thread {
+    public class initThread extends Thread {
+        @Override
         public void run() {
             try {
-                Thread.sleep(2000);
-                flag = true;
-            } catch (Exception e) {
+                //判断当前页
+                siteUrl = "https://wtrwx.top";
+                if (!firstInit) {
+                    siteUrl = siteUrl + "/page/" + currentPage + "/";
+                }
+                //初始化变量
+                title = "";
+                textStr = "";
+                currentPage = currentPage + 1;
+                //获取Document对象
+                Document doc = Jsoup.connect(siteUrl)
+                        .userAgent("app/WtrwxFluid")
+                        .get();
+                //获取class为row的内容
+                Elements select = doc.select("div.row");
+                for (int i = 0; i < select.size(); i++) {
+                    //获取title
+                    if (i != 0) {
+                        final String titlePlus = select.get(i).select("p").text();
+                        title = title + "@title" + titlePlus;
+                        //System.out.println(title);
+                    }
+                    //获取预览
+                    if (i != 0) {
+                        final String textPlus = select.get(i).select("div.index-text").text();
+                        textStr = textStr + "@textStr" + textPlus;
+                        //System.out.println(textStr);
+                    }
+                    //获取URL
+                    if (i != 0) {
+                        final String urlPlus = select.get(i).select("a").attr("href") + "\n";
+                        if (Url == null) {
+                            Url = urlPlus;
+                        } else {
+                            Url = Url + "@url" + urlPlus;
+                            //System.out.println(Url);
+                        }
+                    }
+                }
+                titles = title.split("@title");
+                String[] textStrs = textStr.split("@textStr");
+                Urls = Url.split("@url");
+                ContactInfo card1 = null;
+                for (int i = 1; i < titles.length; i++) {
+                    card1 = new ContactInfo(titles[i], textStrs[i]);
+                    mList.add(card1);
+                }
+                Message msg = new Message();
+                msg.what = 1;
+                handler.sendMessage(msg);
+            } catch (IOException e) {
                 e.printStackTrace();
             }
         }
-    }
-
-    public void initView() {
-        //子线程
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    //判断当前页
-                    siteUrl = "https://wtrwx.top";
-                    if (!firstInit) {
-                        siteUrl = siteUrl + "/page/" + currentPage + "/";
-                    }
-                    //初始化变量
-                    title = "";
-                    textStr = "";
-                    currentPage = currentPage + 1;
-                    //获取Document对象
-                    Document doc = Jsoup.connect(siteUrl)
-                            .userAgent("app/WtrwxFluid")
-                            .get();
-                    //获取class为row的内容
-                    Elements select = doc.select("div.row");
-                    for (int i = 0; i < select.size(); i++) {
-                        //获取title
-                        if (i != 0) {
-                            final String titlePlus = select.get(i).select("p").text();
-                            title = title + "@title" + titlePlus;
-                            //System.out.println(title);
-                        }
-                        //获取预览
-                        if (i != 0) {
-                            final String textPlus = select.get(i).select("div.index-text").text();
-                            textStr = textStr + "@textStr" + textPlus;
-                            //System.out.println(textStr);
-                        }
-                        //获取URL
-                        if (i != 0) {
-                            final String urlPlus = select.get(i).select("a").attr("href") + "\n";
-                            if (Url == null) {
-                                Url = urlPlus;
-                            } else {
-                                Url = Url + "@url" + urlPlus;
-                                //System.out.println(Url);
-                            }
-                        }
-                    }
-                    titles = title.split("@title");
-                    String[] textStrs = textStr.split("@textStr");
-                    Urls = Url.split("@url");
-                    ContactInfo card1 = null;
-                    for (int i = 1; i < titles.length; i++) {
-                        card1 = new ContactInfo(titles[i].toString(), textStrs[i].toString());
-                        mList.add(card1);
-                    }
-                    Message msg = new Message();
-                    msg.what = 1;
-                    handler.sendMessage(msg);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }).start();
-    }
-
-    //双击退出方法
-    private long firstTime = 0;
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_DOWN) {
-            if (System.currentTimeMillis() - firstTime > 2000) {
-                Toast.makeText(MainActivity.this, "再按一次退出程序", Toast.LENGTH_SHORT).show();
-                firstTime = System.currentTimeMillis();
-            } else {
-                finish();
-            }
-            return true;
-        }
-        return super.onKeyDown(keyCode, event);
     }
 
     // 菜单
@@ -260,6 +221,7 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
 
@@ -273,7 +235,7 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
                 startActivity(intent);
                 break;
             case R.id.menu_about:
-
+                startActivity(new Intent(MainActivity.this,AboutActivity.class));
                 break;
             default:
                 break;
@@ -282,9 +244,29 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
     }
 
     //复制方法
-    public static void copyToClipboard(Context context, String text)
-    {
+    public static void copyToClipboard(Context context, String text) {
         ClipboardManager systemService = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
         systemService.setPrimaryClip(ClipData.newPlainText("text", text));
+    }
+
+    //双击退出方法
+    private long firstTime = 0;
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_DOWN) {
+            if (System.currentTimeMillis() - firstTime > 2000) {
+                Toast.makeText(MainActivity.this, "再按一次退出程序", Toast.LENGTH_SHORT).show();
+                firstTime = System.currentTimeMillis();
+            } else {
+                this.finish();
+                new Handler().postDelayed(new Runnable(){
+                    public void run() {
+                        System.exit(0);
+                    }
+                }, 500);
+            }
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
     }
 }

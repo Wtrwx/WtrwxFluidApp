@@ -1,4 +1,9 @@
 <resources>
-    <string name="app_name">WtrwxBlog</string>
-    <string name="cardview">CardView测试</string>
+    <string name="app_name">维他入我心</string>
+    <string name="title_activity_post">文章页</string>
+    <string name="title_activity_about">关于</string>
+    <string name="openOut">在浏览器中打开</string>
+    <string name="copyLink">复制链接</string>
+    <string name="share">分享</string>
+    <string name="refresh">刷新</string>
 </resources>

@@ -1,13 +1,23 @@
 package com.wtrwx.blog;
 
-import androidx.appcompat.app.ActionBar;
-import androidx.appcompat.app.AppCompatActivity;
+import android.annotation.SuppressLint;
+import android.os.Build;
+import android.os.Bundle;
 
+import com.google.android.material.appbar.CollapsingToolbarLayout;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.snackbar.Snackbar;
+
+import androidx.annotation.RequiresApi;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+
+import android.os.Handler;
+import android.view.View;
 import android.content.Intent;
 import android.net.Uri;
-import android.os.Bundle;
-import android.text.TextUtils;
 import android.view.KeyEvent;
+
 import android.view.Menu;
 import android.view.MenuItem;
 import android.webkit.WebSettings;
@@ -18,63 +28,97 @@ import android.content.ClipboardManager;
 import android.content.ClipData;
 import android.widget.Toast;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+
+import java.io.IOException;
+
 public class PostActivity extends AppCompatActivity {
     private WebView myWebView = null;
+    public Toolbar toolbar;
     private String uri;
+    public String info;
 
+    @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_post);
+        toolbar = findViewById(R.id.toolbar);
+
         Intent intent = getIntent();
         // 获取intent传送过来的变量
         uri = intent.getStringExtra("Uri");
         myWebView = findViewById(R.id.web);
+
         WebSettings settings = myWebView.getSettings();
-        settings.setUserAgentString("app/WtrwxFluid");//添加UA,  “app/XXX”：是与h5商量好的标识，h5确认UA为app/XXX就认为该请求的终端为App
-        settings.setJavaScriptEnabled(true);
-        //设置参数
-        settings.setBuiltInZoomControls(true);
-        settings.setAppCacheEnabled(true);// 设置缓存
+        settings.setUserAgentString("app/WtrwxFluid");//添加UA
         // 设置能执行JavaScript脚本
-        myWebView.getSettings().setJavaScriptEnabled(true);
-        // 直接把uri路径所指的网页装载进来
-        myWebView.loadUrl(uri);
-        // 设置web视图,重写此方法返回true表明点击网页里面的链接还是在当前的webview里跳转
+        settings.setJavaScriptEnabled(true);
+
         myWebView.setWebViewClient(new WebViewClient() {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                String title = view.getTitle().replace(" ~ 维他入我心", "");
-                if (!TextUtils.isEmpty(title)) {
-                    setTitle(title);
-                }
+                uri=url;
+                setToolBar();
             }
 
             public boolean shouldOverrideUrlLoading(final WebView view, final String url) {
                 view.loadUrl(url);
+                setToolBar();
                 return true;
             }
 
         });
-        //左上角返回
-        ActionBar actionBar = getSupportActionBar();
-        if(actionBar != null){
-            actionBar.setHomeButtonEnabled(true);
-            actionBar.setDisplayHomeAsUpEnabled(true);
-        }
+
+        myWebView.loadUrl(uri);
+        new Handler().postDelayed(new Runnable(){
+            public void run() {
+                myWebView.reload();
+            }
+        }, 500);
+
+        setToolBar();
+        FloatingActionButton fab = findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(final View view) {
+                getMeta(view);
+
+            }
+        });
     }
 
-    @Override
-    public boolean
-    onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK && myWebView.canGoBack()) {
-            myWebView.goBack();//返回上个页面
-            return true;
-        }
-        return super.onKeyDown(keyCode, event);//退出
+    private void getMeta(final View view) {
+        //子线程
+        new Thread(new Runnable() {
+            @RequiresApi(api = Build.VERSION_CODES.N)
+            @Override
+            public void run() {
+                try {
+                    //获取Document对象
+                    Document doc = Jsoup.connect(uri).get();
+                    String p = " <p class=\"mt-3 post-meta\"><i class=\"fas fa-calendar-alt\" aria-hidden=\"true\"></i> ";
+                    info = doc.select("p.post-meta").text().replace(p, "");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                Snackbar.make(view, info, Snackbar.LENGTH_LONG)
+                        .setAction("Action", null).show();
+            }
+        }).start();
     }
 
+    private void setToolBar() {
+        this.setSupportActionBar(toolbar);
+        String title = myWebView.getTitle().replace(" ~ 维他入我心", "");
+        CollapsingToolbarLayout collapsingToolbarLayout = (CollapsingToolbarLayout) findViewById(R.id.toolbar_layout);
+        collapsingToolbarLayout.setTitle(title);
+        getSupportActionBar().setHomeButtonEnabled(true);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        this.getSupportActionBar().setDisplayShowTitleEnabled(false);
+    }
 
     // 菜单
     @Override
@@ -82,14 +126,17 @@ public class PostActivity extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.post, menu);
         return true;
     }
+
     @Override
-
     public boolean onOptionsItemSelected(MenuItem item) {
-
         switch (item.getItemId()) {
             case android.R.id.home:
                 this.finish(); // back button
                 return true;
+            case R.id.menu_refresh:
+                myWebView.reload();
+                setToolBar();
+                break;
             case R.id.menu_share:
                 Intent textIntent = new Intent(Intent.ACTION_SEND);
                 textIntent.setType("text/plain");
@@ -99,7 +146,7 @@ public class PostActivity extends AppCompatActivity {
                 break;
             case R.id.menu_copyLink:
                 String link = myWebView.getUrl();
-                copyToClipboard(PostActivity.this,link);
+                copyToClipboard(PostActivity.this, link);
                 Toast.makeText(PostActivity.this, "已将链接复制到剪贴板", Toast.LENGTH_SHORT).show();
                 break;
             case R.id.menu_openOut:
@@ -115,9 +162,20 @@ public class PostActivity extends AppCompatActivity {
         }
         return true;
     }
+
+    @Override
+    public boolean
+    onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK && myWebView.canGoBack()) {
+            myWebView.goBack();//返回上个页面
+            toolbar.setTitle(myWebView.getTitle().replace(" ~ 维他入我心", ""));
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);//退出
+    }
+
     //复制方法
-    public static void copyToClipboard(Context context, String text)
-    {
+    public static void copyToClipboard(Context context, String text) {
         ClipboardManager systemService = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
         systemService.setPrimaryClip(ClipData.newPlainText("text", text));
     }

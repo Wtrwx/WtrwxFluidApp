@@ -2,14 +2,14 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
     <item
         android:id="@+id/action_share"
-        android:title="分享"
+        android:title="@string/share"
         android:icon="@drawable/ic_share"/>
     <item
         android:id="@+id/action_copyLink"
-        android:title="复制链接"
+        android:title="@string/copyLink"
         android:icon="@drawable/ic_copy"/>
     <item
         android:id="@+id/action_openOut"
-        android:title="在浏览器中打开"
+        android:title="@string/openOut"
         android:icon="@drawable/ic_openinnew"/>
 </menu>

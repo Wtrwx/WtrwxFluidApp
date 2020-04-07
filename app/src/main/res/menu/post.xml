@@ -2,14 +2,19 @@
 <menu xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:android="http://schemas.android.com/apk/res/android">
     <item
-        android:id="@+id/menu_share"
-        android:icon="@drawable/ic_menu_share"
-        android:title="分享"
+        android:id="@+id/menu_refresh"
+        android:icon="@drawable/ic_menu_refresh"
+        android:title="@string/refresh"
         app:showAsAction="always" />
     <item
+        android:id="@+id/menu_share"
+        android:icon="@drawable/ic_menu_share"
+        android:title="@string/share"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/menu_copyLink"
-        android:title="复制链接"/>
+        android:title="@string/copyLink"/>
     <item
         android:id="@+id/menu_openOut"
-        android:title="在浏览器中打开"/>
+        android:title="@string/openOut"/>
 </menu>
