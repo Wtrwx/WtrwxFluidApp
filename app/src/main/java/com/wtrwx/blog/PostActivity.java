@@ -34,10 +34,16 @@ import java.io.IOException;
 import java.util.Objects;
 
 public class PostActivity extends AppCompatActivity {
-    private WebView myWebView;
     public Toolbar toolbar;
-    private String uri;
     public String info;
+    private WebView myWebView;
+    private String uri;
+
+    //复制方法
+    public static void copyToClipboard(Context context, String text) {
+        ClipboardManager systemService = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+        Objects.requireNonNull(systemService).setPrimaryClip(ClipData.newPlainText("text", text));
+    }
 
     @SuppressLint("SetJavaScriptEnabled")
     @Override
@@ -61,18 +67,19 @@ public class PostActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                    super.onLoadResource(view, url);
-                    //这里重载才能显示图片，不知道为什么
-                    if (firstEnter[0]){
-                        myWebView.reload();
-                        firstEnter[0] = false;
-                        //System.out.println("重载");
-                    }
+                super.onLoadResource(view, url);
+                //这里重载才能显示图片，不知道为什么
+                if (firstEnter[0]) {
+                    myWebView.reload();
+                    firstEnter[0] = false;
+                    //System.out.println("重载");
                 }
+                uri = url;
+            }
+
             @Override
             public void onLoadResource(WebView view, String url) {
                 super.onLoadResource(view, url);
-                uri = url;
                 setToolBar();
             }
 
@@ -178,11 +185,5 @@ public class PostActivity extends AppCompatActivity {
             return true;
         }
         return super.onKeyDown(keyCode, event);//退出
-    }
-
-    //复制方法
-    public static void copyToClipboard(Context context, String text) {
-        ClipboardManager systemService = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-        Objects.requireNonNull(systemService).setPrimaryClip(ClipData.newPlainText("text", text));
     }
 }
