@@ -1,18 +1,18 @@
 package com.wtrwx.blog;
 
-public class ContactInfo {
+class ContactInfo {
 
-    protected String title;
-    protected String text;
-    public ContactInfo(String title,String text){
+    private String title;
+    private String text;
+    ContactInfo(String title, String text){
         this.title = title;
         this.text = text;
     }
 
-    public String getTitle(){
+    String getTitle(){
         return title;
     }
-    public String getText(){
+    String getText(){
         return text;
     }
 }

@@ -3,6 +3,7 @@ package com.wtrwx.blog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import android.annotation.SuppressLint;
 import android.content.ClipData;
@@ -28,33 +29,53 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class MainActivity extends AppCompatActivity implements BottomSheetMenu.BottomSheetMenuListener {
-    private MyAdapter adapter;
-    private Handler handler;
-    public RecyclerView mRecyclerView;
-    List<ContactInfo> mList = new ArrayList<>();
     public static String siteUrl = "https://wtrwx.top";
     public static String title;
     public static String textStr;
-    public static LinearLayoutManager layoutManager;
-    public static boolean firstInit = true;
-    public static int currentPage = 1;
-    public static int longClickPosition;
     public static String Url;
     public static String[] Urls;
     public static String[] titles;
+    public static LinearLayoutManager layoutManager;
+    public static boolean firstInit = true;
+    public static boolean wantMore = true;
+    public static int currentPage = 1;
+    public static int longClickPosition;
+    public RecyclerView mRecyclerView;
+    public SwipeRefreshLayout swipeRefresh;
     public initThread thread = new initThread();
+    List<ContactInfo> mList = new ArrayList<>();
+    private MyAdapter adapter;
+    private Handler handler;
+    //双击退出方法
+    private long firstTime = 0;
 
-    @SuppressLint({"WrongConstant", "HandlerLeak"})
+    //复制方法
+    public static void copyToClipboard(Context context, String text) {
+        ClipboardManager systemService = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+        Objects.requireNonNull(systemService).setPrimaryClip(ClipData.newPlainText("text", text));
+    }
+
+    @SuppressLint({"WrongConstant"})
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        //刷新进度条
+        swipeRefresh = findViewById(R.id.swipeRefresh);
+        swipeRefresh.setColorSchemeResources(R.color.colorAccent);
+        swipeRefresh.setEnabled(false);
+        swipeRefresh.setRefreshing(true);
         //初始化
         thread.start();
         //接收数据
+        receiveData();
+    }
+
+    @SuppressLint("HandlerLeak")
+    public void receiveData() {
         handler = new Handler() {
             @Override
             public void handleMessage(Message msg) {
@@ -69,16 +90,21 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
                     mRecyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
                         @Override
                         public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
-                            int totalItemCount = recyclerView.getAdapter().getItemCount();
+                            int totalItemCount = Objects.requireNonNull(recyclerView.getAdapter()).getItemCount();
                             int lastVisibleItemPosition = layoutManager.findLastVisibleItemPosition();
                             int visibleItemCount = recyclerView.getChildCount();
                             if (newState == RecyclerView.SCROLL_STATE_IDLE
                                     && lastVisibleItemPosition == totalItemCount - 1
                                     && visibleItemCount > 0) {
                                 //加载更多
-                                Toast.makeText(MainActivity.this, "加载更多", Toast.LENGTH_SHORT).show();
-                                initThread thread=new initThread();
-                                thread.start();
+                                if (!wantMore) {
+                                    Toast.makeText(MainActivity.this, "已经没有更多啦", Toast.LENGTH_SHORT).show();
+                                    swipeRefresh.setRefreshing(false);
+                                } else {
+                                    swipeRefresh.setRefreshing(true);
+                                    initThread thread = new initThread();
+                                    thread.start();
+                                }
                             }
                         }
                     });
@@ -88,13 +114,17 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
                     adapter = new MyAdapter(mList);
                     //为RecyclerView对象mRecyclerView设置adapter
                     mRecyclerView.setAdapter(adapter);
+
                     if (!firstInit) {
                         int n = 10 * (currentPage - 2) - 4;
                         layoutManager.scrollToPositionWithOffset(n, 0);
                         layoutManager.setStackFromEnd(true);
                     }
+
                     firstInit = false;
                     //System.out.println(firstInit);
+                    //关闭加载进度条
+                    swipeRefresh.setRefreshing(false);
                     adapter.setOnitemClickLintener(new MyAdapter.OnitemClick() {
                         @Override
                         public void onItemClick(int position) {
@@ -155,6 +185,53 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
         inflater.inflate(R.menu.menu_bottom_sheet, menu);
     }
 
+    // 菜单
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        switch (item.getItemId()) {
+            case R.id.menu_tags:
+                siteUrl = "https://wtrwx.top/tags/";
+                Intent intent = new Intent();
+                intent.setClass(MainActivity.this, PostActivity.class);
+                // 把需要传递的数据附加到intent中
+                intent.putExtra("Uri", siteUrl);
+                startActivity(intent);
+                break;
+            case R.id.menu_about:
+                startActivity(new Intent(MainActivity.this, AboutActivity.class));
+                break;
+            default:
+                break;
+        }
+        return true;
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_DOWN) {
+            if (System.currentTimeMillis() - firstTime > 2000) {
+                Toast.makeText(MainActivity.this, "再按一次退出程序", Toast.LENGTH_SHORT).show();
+                firstTime = System.currentTimeMillis();
+            } else {
+                this.finish();
+                new Handler().postDelayed(new Runnable() {
+                    public void run() {
+                        System.exit(0);
+                    }
+                }, 500);
+            }
+            return true;
+        }
+        return super.onKeyDown(keyCode, event);
+    }
+
     public class initThread extends Thread {
         @Override
         public void run() {
@@ -181,6 +258,7 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
                         title = title + "@title" + titlePlus;
                         //System.out.println(title);
                     }
+
                     //获取预览
                     if (i != 0) {
                         final String textPlus = select.get(i).select("div.index-text").text();
@@ -201,7 +279,11 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
                 titles = title.split("@title");
                 String[] textStrs = textStr.split("@textStr");
                 Urls = Url.split("@url");
-                ContactInfo card1 = null;
+                ContactInfo card1;
+                if (titles.length < 11) {
+                    wantMore = false;
+                }
+
                 for (int i = 1; i < titles.length; i++) {
                     card1 = new ContactInfo(titles[i], textStrs[i]);
                     mList.add(card1);
@@ -213,60 +295,5 @@ public class MainActivity extends AppCompatActivity implements BottomSheetMenu.B
                 e.printStackTrace();
             }
         }
-    }
-
-    // 菜单
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-
-        switch (item.getItemId()) {
-            case R.id.menu_tags:
-                siteUrl = "https://wtrwx.top/tags/";
-                Intent intent = new Intent();
-                intent.setClass(MainActivity.this, PostActivity.class);
-                // 把需要传递的数据附加到intent中
-                intent.putExtra("Uri", siteUrl);
-                startActivity(intent);
-                break;
-            case R.id.menu_about:
-                startActivity(new Intent(MainActivity.this,AboutActivity.class));
-                break;
-            default:
-                break;
-        }
-        return true;
-    }
-
-    //复制方法
-    public static void copyToClipboard(Context context, String text) {
-        ClipboardManager systemService = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-        systemService.setPrimaryClip(ClipData.newPlainText("text", text));
-    }
-
-    //双击退出方法
-    private long firstTime = 0;
-    @Override
-    public boolean onKeyDown(int keyCode, KeyEvent event) {
-        if (keyCode == KeyEvent.KEYCODE_BACK && event.getAction() == KeyEvent.ACTION_DOWN) {
-            if (System.currentTimeMillis() - firstTime > 2000) {
-                Toast.makeText(MainActivity.this, "再按一次退出程序", Toast.LENGTH_SHORT).show();
-                firstTime = System.currentTimeMillis();
-            } else {
-                this.finish();
-                new Handler().postDelayed(new Runnable(){
-                    public void run() {
-                        System.exit(0);
-                    }
-                }, 500);
-            }
-            return true;
-        }
-        return super.onKeyDown(keyCode, event);
     }
 }

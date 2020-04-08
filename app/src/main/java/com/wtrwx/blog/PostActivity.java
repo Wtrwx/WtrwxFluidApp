@@ -32,9 +32,10 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
 import java.io.IOException;
+import java.util.Objects;
 
 public class PostActivity extends AppCompatActivity {
-    private WebView myWebView = null;
+    private WebView myWebView;
     public Toolbar toolbar;
     private String uri;
     public String info;
@@ -60,7 +61,7 @@ public class PostActivity extends AppCompatActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                uri=url;
+                uri = url;
                 setToolBar();
             }
 
@@ -73,7 +74,7 @@ public class PostActivity extends AppCompatActivity {
         });
 
         myWebView.loadUrl(uri);
-        new Handler().postDelayed(new Runnable(){
+        new Handler().postDelayed(new Runnable() {
             public void run() {
                 myWebView.reload();
             }
@@ -115,7 +116,7 @@ public class PostActivity extends AppCompatActivity {
         String title = myWebView.getTitle().replace(" ~ 维他入我心", "");
         CollapsingToolbarLayout collapsingToolbarLayout = (CollapsingToolbarLayout) findViewById(R.id.toolbar_layout);
         collapsingToolbarLayout.setTitle(title);
-        getSupportActionBar().setHomeButtonEnabled(true);
+        Objects.requireNonNull(getSupportActionBar()).setHomeButtonEnabled(true);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         this.getSupportActionBar().setDisplayShowTitleEnabled(false);
     }
@@ -168,7 +169,6 @@ public class PostActivity extends AppCompatActivity {
     onKeyDown(int keyCode, KeyEvent event) {
         if (keyCode == KeyEvent.KEYCODE_BACK && myWebView.canGoBack()) {
             myWebView.goBack();//返回上个页面
-            toolbar.setTitle(myWebView.getTitle().replace(" ~ 维他入我心", ""));
             return true;
         }
         return super.onKeyDown(keyCode, event);//退出
@@ -177,6 +177,6 @@ public class PostActivity extends AppCompatActivity {
     //复制方法
     public static void copyToClipboard(Context context, String text) {
         ClipboardManager systemService = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-        systemService.setPrimaryClip(ClipData.newPlainText("text", text));
+        Objects.requireNonNull(systemService).setPrimaryClip(ClipData.newPlainText("text", text));
     }
 }

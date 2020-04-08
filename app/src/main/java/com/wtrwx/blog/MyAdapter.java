@@ -18,11 +18,11 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ContactViewHolder>
     private OnitemClick onitemClick;   //定义点击事件接口
     private OnLongClick onLongClick;  //定义长按事件接口
     //定义设置点击事件监听的方法
-    public void setOnitemClickLintener (OnitemClick onitemClick) {
+    void setOnitemClickLintener(OnitemClick onitemClick) {
         this.onitemClick = onitemClick;
     }
     //定义设置长按事件监听的方法
-    public void setOnLongClickListener (OnLongClick onLongClick) {
+    void setOnLongClickListener(OnLongClick onLongClick) {
         this.onLongClick = onLongClick;
     }
 
@@ -35,7 +35,7 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ContactViewHolder>
         void onLongClick(int position);
     }
 
-    public MyAdapter(List<ContactInfo> contactInfoList){
+    MyAdapter(List<ContactInfo> contactInfoList){
         this.contactInfoList = contactInfoList;
     }
     //    重写构造方法
@@ -83,11 +83,11 @@ public class MyAdapter extends RecyclerView.Adapter<MyAdapter.ContactViewHolder>
         return contactInfoList.size();
     }
 
-    class ContactViewHolder extends RecyclerView.ViewHolder{
+    static class ContactViewHolder extends RecyclerView.ViewHolder{
         private TextView item_tv;
         private TextView item_tv1;
         private CardView item_cv;
-        public ContactViewHolder(@NonNull View itemView) {
+        ContactViewHolder(@NonNull View itemView) {
             super(itemView);
             item_tv = itemView.findViewById(R.id.item_tv);
             item_tv1 = itemView.findViewById(R.id.item_tv1);
