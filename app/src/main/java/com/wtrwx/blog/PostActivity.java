@@ -12,7 +12,6 @@ import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import android.os.Handler;
 import android.view.View;
 import android.content.Intent;
 import android.net.Uri;
@@ -50,6 +49,7 @@ public class PostActivity extends AppCompatActivity {
         Intent intent = getIntent();
         // 获取intent传送过来的变量
         uri = intent.getStringExtra("Uri");
+        final boolean[] firstEnter = {true};
         myWebView = findViewById(R.id.web);
 
         WebSettings settings = myWebView.getSettings();
@@ -59,8 +59,14 @@ public class PostActivity extends AppCompatActivity {
 
         myWebView.setWebViewClient(new WebViewClient() {
             @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
+            public void onLoadResource(WebView view, String url) {
+                super.onLoadResource(view, url);
+                //这里重载才能显示图片，不知道为什么
+                if (firstEnter[0]){
+                    myWebView.reload();
+                    firstEnter[0] = false;
+                    //System.out.println("重载");
+                }
                 uri = url;
                 setToolBar();
             }
@@ -74,11 +80,6 @@ public class PostActivity extends AppCompatActivity {
         });
 
         myWebView.loadUrl(uri);
-        new Handler().postDelayed(new Runnable() {
-            public void run() {
-                myWebView.reload();
-            }
-        }, 500);
 
         setToolBar();
         FloatingActionButton fab = findViewById(R.id.fab);
