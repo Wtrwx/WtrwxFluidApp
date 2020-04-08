@@ -59,14 +59,19 @@ public class PostActivity extends AppCompatActivity {
 
         myWebView.setWebViewClient(new WebViewClient() {
             @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                    super.onLoadResource(view, url);
+                    //这里重载才能显示图片，不知道为什么
+                    if (firstEnter[0]){
+                        myWebView.reload();
+                        firstEnter[0] = false;
+                        //System.out.println("重载");
+                    }
+                }
+            @Override
             public void onLoadResource(WebView view, String url) {
                 super.onLoadResource(view, url);
-                //这里重载才能显示图片，不知道为什么
-                if (firstEnter[0]){
-                    myWebView.reload();
-                    firstEnter[0] = false;
-                    //System.out.println("重载");
-                }
                 uri = url;
                 setToolBar();
             }
